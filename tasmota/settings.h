@@ -365,7 +365,7 @@ struct {
   uint8_t       display_dimmer;            // 2E0
   uint8_t       display_size;              // 2E1
   TimeRule      tflag[2];                  // 2E2
-  uint16_t      pwm_frequency;             // 2E6
+  uint16_t      ex_pwm_frequency;          // 2E6
   power_t       power;                     // 2E8
   uint16_t      pwm_value[MAX_PWMS];       // 2EC
   int16_t       altitude;                  // 2F6
@@ -375,8 +375,9 @@ struct {
   uint8_t       param[PARAM8_SIZE];        // 2FC  SetOption32 .. SetOption49
   int16_t       toffset[2];                // 30E
   uint8_t       display_font;              // 312
+  uint32_t      pwm_frequency[MAX_PWMS];   // TODO
 
-  uint8_t       free_313[44];              // 313
+  uint8_t       free_313[18];              // 313
 
   uint8_t       tuyamcu_topic;             // 33F  Manage tuyaSend topic. ex_energy_power_delta on 6.6.0.20, replaced on 8.5.0.1
   uint16_t      domoticz_update_timer;     // 340

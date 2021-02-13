@@ -1386,11 +1386,34 @@ void CmndPwm(void)
 
 void CmndPwmfrequency(void)
 {
-  if ((1 == XdrvMailbox.payload) || ((XdrvMailbox.payload >= PWM_MIN) && (XdrvMailbox.payload <= PWM_MAX))) {
-    Settings.pwm_frequency = (1 == XdrvMailbox.payload) ? PWM_FREQ : XdrvMailbox.payload;
-    analogWriteFreq(Settings.pwm_frequency);   // Default is 1000 (core_esp8266_wiring_pwm.c)
+  uint32_t frequency = 0;
+
+  if (XdrvMailbox.payload > PWM_MAX) {
+#ifdef USE_SIGMA_DELTA_PWM
+    /* find and set best matching frequency */
+    frequency = XdrvMailbox.payload;
+    sigmaDeltaFrequency2Resolution(&frequency);
+#endif // USE_SIGMA_DELTA_PWM
+  } else if ((1 == XdrvMailbox.payload) || (XdrvMailbox.payload >= PWM_MIN)) {
+    frequency = (1 == XdrvMailbox.payload) ? PWM_FREQ : XdrvMailbox.payload;
+    analogWriteFreq(frequency);   // Default is 1000 (core_esp8266_wiring_pwm.c)
   }
-  ResponseCmndNumber(Settings.pwm_frequency);
+
+  /* set frequency if a valid frequency was found */
+  if (frequency) {
+    uint32_t i = MAX_PWMS;
+    /* in case of non user index set all to same frequency */
+    while (NextUserIndex(i)) {
+      Settings.pwm_frequency[i] = frequency;
+
+      /* Switch between HW and SW PWM if frequency was set */
+      AnalogWritePWM(i, Settings.pwm_value[i]);
+    }
+  }
+
+  const uint32_t channel = ( (XdrvMailbox.index > 0) && (XdrvMailbox.index < MAX_PWMS) ) ?
+      (XdrvMailbox.index - 1) : 0;
+  ResponseCmndNumber(Settings.pwm_frequency[channel]);
 }
 
 void CmndPwmrange(void) {

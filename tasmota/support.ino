@@ -26,6 +26,7 @@ extern struct rst_info resetInfo;
 \*********************************************************************************************/
 
 #include <Ticker.h>
+#include <sigma_delta.h>
 
 Ticker tickerOSWatch;
 
@@ -1360,9 +1361,77 @@ void DigitalWrite(uint32_t gpio_pin, uint32_t index, uint32_t state)
   }
 }
 
+uint8_t sigmaDeltaFrequency2Resolution(uint32_t* const frequency)
+{
+  /* at least 2 bit resolution should be used */
+  const uint8_t minResolution = 2;
+  /* 8 bit resolution is the limit of the sigma delta hardware */
+  const uint8_t maxResolution = 8;
+  for (uint8_t res=minResolution; res<maxResolution; res++) {
+    const uint32_t freqOfRes = F_CPU / (1 << res);
+    if (*frequency >= freqOfRes) {
+      *frequency = freqOfRes;
+      return res;
+    }
+  }
+
+  /* if nothing matches use minimal possible PWM frequency */
+  *frequency = F_CPU / (1 << maxResolution);
+  return maxResolution;
+}
+
+void sigmaDeltaWritePWM(uint32_t pin, uint32_t frequency, uint16_t val_inv)
+{
+  const uint8_t resolution = sigmaDeltaFrequency2Resolution(&frequency);
+  const uint8_t sd_pwm_range = (1 << resolution) - 1;
+  const uint8_t sd_value = changeUIntScale(val_inv, 0, Settings.pwm_range, 0, sd_pwm_range);
+
+  if (sd_value <= 0) {
+    digitalWrite(pin, LOW);
+    pinMode(pin, OUTPUT);
+  } else if (sd_value >= sd_pwm_range) {
+    digitalWrite(pin, HIGH);
+    pinMode(pin, OUTPUT);
+  } else {
+    /* Subtract one to have a always constant sigma delta output frequency.
+     * Without it e.g. sd_value = 1 would result into F_CPU / 512 but
+     * sd_value = 127 would result into F_CPU / 256
+     */
+    const uint8_t prescale = sd_value - 1;
+    /* The prescale has always to be <= (sd_pwm_range / 2) because
+     * even with a sd_value = 128 the sigma delta output frequency is still
+     * half of sigma delta circuit frequency.
+     * For further information about the sigma delta circuit in general see
+     * https://www.fpga4fun.com/PWM_DAC_2.html
+     */
+    const uint8_t half_prescale = ( prescale > (sd_pwm_range / 2) ) ?
+        (sd_pwm_range - prescale) : prescale;
+
+    const uint8_t channel = 0; // TODO ESP8266 has only one sigma delta hardware
+    sigmaDeltaEnable();
+    /* sigma delta target value has always to be in range 1..255 */
+    const uint8_t extend_to_8_bit = 8 - resolution;
+    sigmaDeltaWrite(channel, sd_value << extend_to_8_bit);
+    sigmaDeltaSetPrescaler(half_prescale);
+
+    // TODO double check if detach is somewhere required or is calling analogWrite() sufficient
+    sigmaDeltaAttachPin(pin, channel);
+  }
+}
+
 void AnalogWritePWM(uint32_t index, uint16_t value)
 {
-  analogWrite(Pin(GPIO_PWM1, index), bitRead(TasmotaGlobal.pwm_inverted, index) ? Settings.pwm_range - value : value);
+  const uint32_t pin = Pin(GPIO_PWM1, index);
+  const uint16_t val_inv = bitRead(TasmotaGlobal.pwm_inverted, index) ? Settings.pwm_range - value : value;
+
+#ifdef USE_SIGMA_DELTA_PWM
+  if (Settings.pwm_frequency[index] > PWM_MAX) {
+    sigmaDeltaWritePWM(pin, Settings.pwm_frequency[index], val_inv);
+  } else
+#endif // USE_SIGMA_DELTA_PWM
+  {
+    analogWrite(pin, val_inv);
+  }
 }
 
 uint8_t ModuleNr(void)

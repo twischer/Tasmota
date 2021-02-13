@@ -1638,7 +1638,16 @@ void GpioInit(void)
 //  AddLogBufferSize(LOG_LEVEL_DEBUG, (uint8_t*)TasmotaGlobal.gpio_pin, ARRAY_SIZE(TasmotaGlobal.gpio_pin), sizeof(TasmotaGlobal.gpio_pin[0]));
 
   analogWriteRange(Settings.pwm_range);      // Default is 1023 (Arduino.h)
-  analogWriteFreq(Settings.pwm_frequency);   // Default is 1000 (core_esp8266_wiring_pwm.c)
+
+  /* Search for first PWM freqency in range for software PWM.
+   * If nothing could be found keep default freqency.
+   */
+  for (uint32_t i=0; i<MAX_PWMS; i++) {
+    if (Settings.pwm_frequency[i] <= PWM_MAX) {
+      analogWriteFreq(Settings.pwm_frequency[i]);   // Default is 1000 (core_esp8266_wiring_pwm.c)
+      break;
+    }
+  }
 
 #ifdef ESP8266
   if ((2 == Pin(GPIO_TXD)) || (H801 == TasmotaGlobal.module_type)) { Serial.set_tx(2); }

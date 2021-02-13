@@ -963,9 +963,9 @@ void SettingsDefaultSet2(void) {
   flag4.virtual_ct |= LIGHT_VIRTUAL_CT;
   flag4.virtual_ct_cw |= LIGHT_VIRTUAL_CT_CW;
 
-  Settings.pwm_frequency = PWM_FREQ;
   Settings.pwm_range = PWM_RANGE;
   for (uint32_t i = 0; i < MAX_PWMS; i++) {
+    Settings.pwm_frequency[i] = PWM_FREQ;
     Settings.light_color[i] = DEFAULT_LIGHT_COMPONENT;
 //    Settings.pwm_value[i] = 0;
   }
