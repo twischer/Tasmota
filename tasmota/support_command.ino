@@ -1376,7 +1376,7 @@ void CmndPwm(void)
   if (TasmotaGlobal.pwm_present && (XdrvMailbox.index > 0) && (XdrvMailbox.index <= MAX_PWMS)) {
     if ((XdrvMailbox.payload >= 0) && (XdrvMailbox.payload <= Settings.pwm_range) && PinUsed(GPIO_PWM1, XdrvMailbox.index -1)) {
       Settings.pwm_value[XdrvMailbox.index -1] = XdrvMailbox.payload;
-      analogWrite(Pin(GPIO_PWM1, XdrvMailbox.index -1), bitRead(TasmotaGlobal.pwm_inverted, XdrvMailbox.index -1) ? Settings.pwm_range - XdrvMailbox.payload : XdrvMailbox.payload);
+      AnalogWritePWM(XdrvMailbox.index -1, XdrvMailbox.payload);
     }
     Response_P(PSTR("{"));
     MqttShowPWMState();  // Render the PWM status to MQTT

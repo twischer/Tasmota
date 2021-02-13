@@ -1360,6 +1360,11 @@ void DigitalWrite(uint32_t gpio_pin, uint32_t index, uint32_t state)
   }
 }
 
+void AnalogWritePWM(uint32_t index, uint16_t value)
+{
+  analogWrite(Pin(GPIO_PWM1, index), bitRead(TasmotaGlobal.pwm_inverted, index) ? Settings.pwm_range - value : value);
+}
+
 uint8_t ModuleNr(void)
 {
   // 0    = User module (255)

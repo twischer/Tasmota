@@ -1958,7 +1958,7 @@ void LightSetOutputs(const uint16_t *cur_col_10) {
           cur_col = cur_col > 0 ? changeUIntScale(cur_col, 0, Settings.pwm_range, Light.pwm_min[i], Light.pwm_max[i]) : 0;   // shrink to the range of pwm_min..pwm_max
         }
         if (!Settings.flag4.zerocross_dimmer) {
-          analogWrite(Pin(GPIO_PWM1, i), bitRead(TasmotaGlobal.pwm_inverted, i) ? Settings.pwm_range - cur_col : cur_col);
+          AnalogWritePWM(i, cur_col);
         }
       }
     }
