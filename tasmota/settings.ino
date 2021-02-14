@@ -521,6 +521,7 @@ void SettingsSave(uint8_t rotate) {
 #ifdef USE_UFILESYS
     TfsSaveFile(TASM_FILE_SETTINGS, (const uint8_t*)&Settings, sizeof(Settings));
 #endif  // USE_UFILESYS
+    static_assert(sizeof(Settings) == SPI_FLASH_SEC_SIZE, "Size of Settings has changed!");
     if (ESP.flashEraseSector(settings_location)) {
       ESP.flashWrite(settings_location * SPI_FLASH_SEC_SIZE, (uint32*)&Settings, sizeof(Settings));
     }
